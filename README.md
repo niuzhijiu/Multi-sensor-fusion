@@ -46,7 +46,8 @@ catkin_ws/
             ├── time_offset_calculate_portion.py
             ├── timestamp_correct.py
             ├── fusion_node.py
-            └── publish.py
+            ├── publish.py
+            └── fusion_subscribe.py
 
 
 ---
@@ -108,6 +109,12 @@ catkin_ws/
   1. 订阅相机和imu话题；
   2. 每一帧相机图像到来时发布一次融合消息，将当前到达的图像的时间戳作为融合消息的时间戳，按照FusedState.msg格式发布消息，图像是当前到达的图像，imu数据是[上一帧图像时间，本帧图像时间）内缓存的imu。
 
+### **fusion_subscribe.py**
+- **功能**：ROS融合信息接收验证节点，接收融合数据并保存，验证流程成功性。
+- **实现步骤**： 
+  1. 订阅融合后发布的话题；
+  2. 每次收到融合信息就进行保存，验证流程的正确性。
+
 ---
 
 ## msg
@@ -120,7 +127,7 @@ catkin_ws/
 ## launch
 
 ### **launch.launch**
-- **功能**：一键启动 fusion_node 和 publish_node，自动完成发布与融合。
+- **功能**：一键启动节点，自动完成发布与融合与保存。
 
 ---
 
