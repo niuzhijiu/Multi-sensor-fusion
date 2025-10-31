@@ -1,0 +1,24 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/cat/github_ws/src/sensor_time_align/src/imu_w_norm_calculate.cpp
+iostream
+-
+fstream
+-
+sstream
+-
+string
+-
+cmath
+-
+vector
+-
+iomanip
+-
+

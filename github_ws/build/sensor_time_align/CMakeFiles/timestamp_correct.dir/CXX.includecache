@@ -1,0 +1,22 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/cat/github_ws/src/sensor_time_align/src/timestamp_correct.cpp
+iostream
+-
+fstream
+-
+sstream
+-
+string
+-
+vector
+-
+iomanip
+-
+

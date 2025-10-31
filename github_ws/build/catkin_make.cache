@@ -1,0 +1,2 @@
+sensor_time_align
+-DCATKIN_DEVEL_PREFIX=/home/cat/github_ws/devel -DCMAKE_INSTALL_PREFIX=/home/cat/github_ws/install -G Unix Makefiles
