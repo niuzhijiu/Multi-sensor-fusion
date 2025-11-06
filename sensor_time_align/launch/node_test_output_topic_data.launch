@@ -1,0 +1,17 @@
+<launch>
+  <!-- 1.启动图像节点 -->
+  <node name="image_raw_node_test" pkg="sensor_time_align" type="image_raw_node_test" output="screen">
+    <!-- 订阅 usb_cam 发布的原始图像话题-->
+    <remap from="image_raw" to="/usb_cam/image_raw" />
+    <!-- 发布带时间戳的图像话题 -->
+    <remap from="image_timestamp_raw" to="/image_timestamp_raw" />
+  </node>
+
+  <!-- 2.启动IMU节点-->
+  <node name="imu_raw_node_test" pkg="sensor_time_align" type="imu_raw_node_test" output="screen" args="/dev/i2c-6">
+    <!-- args 指定 I2C 设备路径 -->
+    <!-- 发布 IMU 数据话题 -->
+    <remap from="imu_raw" to="/imu_raw" />
+  </node>
+
+</launch>
