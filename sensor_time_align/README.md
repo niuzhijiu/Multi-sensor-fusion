@@ -41,39 +41,62 @@ sensor_time_align
 
 此目录结构是通过tree -L 2命令去生成的，可以查看2级目录结构，能看到包内的launch、src等文件夹。
 tree命令的安装指令为：
+```bash
 sudo apt update && sudo apt install -y tree
+```
 
 # src文件原理解释及本项目详细实施步骤
 ## step1：创建工作区
 在ROS中创建名为github_ws的工作区：
   创建工作区目录结构：
+```bash
 mkdir -p ~/github_ws/src
+```
   初始化工作区：
+```bash
 cd ~/github_ws/src
 catkin_init_workspace
+```
   编译工作区：
+```bash
 cd ~/github_ws
 catkin_make
+```
   添加环境变量：
+```bash
 source devel/setup.bash
+```
   
 ## step2:创建功能包 sensor_time_align
-catkin_create_pkg sensor_time_align roscpp rospy sensor_msgs geometry_msgs cv_bridge image_transport sensor_time_align std_msgs 
+```bash
+catkin_create_pkg sensor_time_align roscpp rospy sensor_msgs geometry_msgs cv_bridge image_transport sensor_time_align std_msgs
+```
 
 ## step3:离线粗对齐系统 offline_sensor_time_align 
   3.1至3.5推荐在vscode里面运行，也可以在ros包里面运行,下面内容写了在vscode里面运行需要作的调整，在ros包里运行已经配置好相关文件因此在工作区里rosrun可执行文件即可。
 ### 3.1 对euroc数据集的MH_01_easy.bag进行分解得到数据集
   在vscode里面运行split.py实施分解，之后使用此步骤得到的数据集进行测试。
   如果是split.cpp的话操作步骤如下：
-  #编译源码生成可执行文件：g++ split.cpp -o split
-  #执行可执行文件：sudo ./split
+  编译源码生成可执行文件：
+```bash
+  g++ split.cpp -o split
+```
+  执行可执行文件：
+```bash
+  sudo ./split
+```
 ### 3.2 进行视觉角速度的计算
   如果你在vscode里面第一次调试运行使用opencv的库的cpp文件的话vscode找不到opencv会报错，此时需要修改.vscode里的tasks.json与c_cpp_properties.json让opencv可以被找到。
   头文件路径寻找命令：
+```bash
   pkg-config --cflags opencv4
+```
   库文件路径寻找命令：
+```bash
   pkg-config --libs opencv4
+```
   本项目opencv4.2.0的opencv头文件路径为/usr/include/opencv4库文件路径为/usr/lib/x86_64-linux-gnu因此修改本项目tasks.json为如下：
+```json
 {
     "tasks": [
         {
@@ -111,7 +134,9 @@ catkin_create_pkg sensor_time_align roscpp rospy sensor_msgs geometry_msgs cv_br
     ],
     "version": "2.0.0"
 }
+```
   修改本项目c_cpp_properties.json为如下：
+```json
 {
   "configurations": [
     {
@@ -129,6 +154,7 @@ catkin_create_pkg sensor_time_align roscpp rospy sensor_msgs geometry_msgs cv_br
   ],
   "version": 4
 }
+```
   之后可以在vscode里面编译运行cam_w_norm_calculate.cpp即可完成视觉角速度的计算。原理是这样的：1.遍历相邻的两帧图像数据记为若干组前后帧匹配对； 2.ORB算法提取相邻两帧图像的特征点和特征描述符； 3.用BFMatcher进行特征匹配； 4.提取匹配点的像素坐标；5.估计本质矩阵，用RANSAC算法剔除外点；6.解算得到旋转矩阵；7.Rodrigues变换将旋转矩阵转为旋转向量；8.计算三轴视觉角速度以及角速度模长并输出结果。
 ### 3.3 进行imu角速度模值的计算
   在vscode里面编译运行imu_w_norm_calculate.cpp即可完成imu角速度模值的计算。原理是这样的：1.由imu三轴角速度原始数据计算得到imu角速度模长并输出结果然后保存下来。
@@ -143,21 +169,29 @@ catkin_create_pkg sensor_time_align roscpp rospy sensor_msgs geometry_msgs cv_br
 ### 3.7 数据的融合
   fusion_node.cpp文件里的内容实现数据的融合。文件规定了一个ROS融合节点fusion_node，订阅相机帧与区间内IMU数据，生成并发布融合数据话题 /fused_topic。原理是这样的：1.订阅节点pub_node所发布的相机和imu话题；2.发布融合后的信息。每一帧相机信息到来时按照FusedState.msg格式发布一次融合消息，将当前到达的图像的时间戳作为融合消息的时间戳，融合消息中的图像是当前到达的图像，imu数据是[上一帧图像时间，本帧图像时间）内缓存的各个imu的三轴加速度、三轴角速度、原始时间戳。第一帧相机数据特殊处理不包含imu信息。
   之后可以对融合后发出的话题里面的数据进行检查验证。可以使用命令：
+```bash
   rostopic echo /fused_topic
+```
   可以看到消息里面的全部数据，但是通常由于图像数据太多了，在终端中往往只能观察到图像数据和区间内imu的角速度、加速度以及对应的原始时间戳，时间戳和图像名可以用以下命令来检测：
+```bash
   rostopic echo /fused_topic | grep -E "timestamp|secs|nsecs|image_filename" 
+```
   
 ## step4:在线粗对齐系统 online_sensor_time_align 
   本项目所使用的传感器为一个单目相机和一个型号为MPU6050的传感器。
 ### 4.1 相机的驱动
   本项目所使用的是一个单目相机，使用ros里面带有的usb_cam去进行驱动。
   对于ROS 1 Noetic版本安装驱动：
+```bash
   sudo apt install ros-noetic-usb-cam
   source /opt/ros/noetic/setup.bash     # 加载ROS环境
   roslaunch usb_cam usb_cam-test.launch     # 启动相机
+```
   之后每次重新打开设备的话，roscore之后进行下列操作即可：
+```bash
   source /opt/ros/noetic/setup.bash
   roslaunch usb_cam usb_cam-test.launch
+```
 ### 4.2 相机数据的标准化
   虽然上一步骤中相机所发布的话题也是带有时间戳的，但是本项目定义了话题名，且需要的是符合标准的相机数据，因此要进行相机数据的标准化。使用image_raw_node.cpp文件或image_raw_node_test.cpp文件对订阅到的相机话题进行相机数据的标准化，image_raw_node.cpp的功能是订阅相机原始图像话题，处理后重新发布带精确时间戳的图像话题，image_raw_node_test.cpp的功能是订阅相机原始图像话题，处理后重新发布带精确时间戳的图像话题并将图像帧及其名字、时间戳标准化保存下来形成数据集。
 ### 4.3 IMU的驱动
@@ -169,16 +203,22 @@ catkin_create_pkg sensor_time_align roscpp rospy sensor_msgs geometry_msgs cv_br
   本步骤是所用相机内参未知，想要标定获得相机内参时的独立步骤。标定相机内参的方法有很多，例如kalibr也可以标定，但在ROS里面用张正友标定法去标定相机内参速度是很快的，很适合对未知内参的相机进行标定。
 ### 5.1 将单目相机驱动起来
   终端1启动ROS：
+```bash
   roscore
+```
   终端2驱动相机：
+```bash
   source /opt/ros/noetic/setup.bash
   roslaunch usb_cam usb_cam-test.launch
+```
 ### 5.2 输入现实中的一些参数开始标定
   终端3开始标定：
+```bahs
   source /opt/ros/noetic/setup.bash
   cd github_ws
   source devel/setup.bash
   rosrun camera_calibration cameracalibrator.py --size 11x8 --square 0.0208 image:=/usb_cam/image_raw
+```
   参数说明：
   --size 11x8     # 角点的数量，是棋盘格的数量减1
   --square 0.0208     # 每个格子的大小，单位是米
@@ -190,27 +230,35 @@ catkin_create_pkg sensor_time_align roscpp rospy sensor_msgs geometry_msgs cv_br
   kalibr工具包的代码被开源到以下网址：
   https://github.com/ethz-asl/kalibr
   从Code按钮下选择Download ZIP选项，下载kalibr-master.zip之后解压，将解压所得的文件夹命名为kalibr之后放到github_ws工作区的src文件夹内，然后进行以下操作去进行编译：
+```bash
   cd github_ws
   catkin_make
   source devel/setup.bash
+```
   此时完成了对kalibr的编译以及编译成功后环境变量的加载。
   在编译过程中往往会出现无法编译成功kalibr工具的问题，体现为无法识别编译好的文件，对这个原因进行了分析，发现原因在于环境变量按照常规的方法添加无法被识别，找到解决方案是在无法识别时执行以下命令即可：
+```bahs
   export PATH=$PATH:~/kalibr_ws/devel/lib/kalibr
   source devel/setup.bash
+```
 ### 6.2 kalibr相机标定
   自己录制了离线bag，执行以下命令进行kalibr相机标定，会得到相机内参、多相机之间外参等结果数据。
+```bash
   kalibr_calibrate_cameras  \
     --bag ~/data/bw_data_test_2025-10-26-22-17-21.bag \
     --topics /image_timestamp_raw \
     --models pinhole-radtan \
     --target ~/kalibr_ws/checkerboard_board.yaml 
+```
 ### 6.3 kalibr相机IMU联合标定
   使用离线bag执行以下命令进行kalibr相机IMU联合标定，得到外参、时间偏移等结果数据。
+```bash
   kalibr_calibrate_imu_camera \
     --bag ~/data/bw_data_test_2025-10-26-22-17-21.bag \
     --cam ~/data/bw_data_test_2025-10-26-22-17-21-camchain.yaml \
     --imu ~/kalibr_ws/imu.yaml \
     --target ~/kalibr_ws/checkerboard_board.yaml
+```
 ### 6.4 多次迭代kalibr相机IMU联合标定
   将前一次kalibr相机IMU联合标定的结果参数作为后一次的参数的初始值进行下一次kalibr相机IMU联合标定，直到结果收敛为止，可以提高标定结果的精度。如果两次结果几乎一致，例如误差指标差别<5%，即可说明已经收敛，无需再继续。注意要准备多套离线bag文件，每一次用不同的离线bag文件。
   通常判断是否收敛的指标有这些：
