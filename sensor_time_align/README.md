@@ -42,7 +42,7 @@ sensor_time_align
 此目录结构是通过tree -L 2命令去生成的，可以查看2级目录结构，能看到包内的launch、src等文件夹。
 tree命令的安装指令为：
 ```bash
-sudo apt update && sudo apt install -y tree
+  sudo apt update && sudo apt install -y tree
 ```
 
 # src文件原理解释及本项目详细实施步骤
@@ -50,26 +50,26 @@ sudo apt update && sudo apt install -y tree
 在ROS中创建名为github_ws的工作区：
   创建工作区目录结构：
 ```bash
-mkdir -p ~/github_ws/src
+  mkdir -p ~/github_ws/src
 ```
   初始化工作区：
 ```bash
-cd ~/github_ws/src
-catkin_init_workspace
+  cd ~/github_ws/src
+  catkin_init_workspace
 ```
   编译工作区：
 ```bash
-cd ~/github_ws
-catkin_make
+  cd ~/github_ws
+  catkin_make
 ```
   添加环境变量：
 ```bash
-source devel/setup.bash
+  source devel/setup.bash
 ```
   
 ## step2:创建功能包 sensor_time_align
 ```bash
-catkin_create_pkg sensor_time_align roscpp rospy sensor_msgs geometry_msgs cv_bridge image_transport sensor_time_align std_msgs
+  catkin_create_pkg sensor_time_align roscpp rospy sensor_msgs geometry_msgs cv_bridge image_transport sensor_time_align std_msgs
 ```
 
 ## step3:离线粗对齐系统 offline_sensor_time_align 
