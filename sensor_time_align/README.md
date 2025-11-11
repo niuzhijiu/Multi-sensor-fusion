@@ -9,7 +9,7 @@
 - Ubuntu 20.04 
 - ROS1 Noetic 
 - OpenCV 4.2.0
-- least C++11
+- Minimum C++11
 
 # 目录结构
 sensor_time_align
@@ -213,7 +213,7 @@ tree命令的安装指令为：
 ```
 ### 5.2 输入现实中的一些参数开始标定
   终端3开始标定：
-```bahs
+```bash
   source /opt/ros/noetic/setup.bash
   cd github_ws
   source devel/setup.bash
@@ -229,15 +229,19 @@ tree命令的安装指令为：
 ### 6.1 kalibr的编译
   kalibr工具包的代码被开源到以下网址：
   https://github.com/ethz-asl/kalibr
-  从Code按钮下选择Download ZIP选项，下载kalibr-master.zip之后解压，将解压所得的文件夹命名为kalibr之后放到github_ws工作区的src文件夹内，然后进行以下操作去进行编译：
+  从Code按钮下选择Download ZIP选项，下载kalibr-master.zip之后解压，将解压所得的文件夹命名为kalibr，之后新建kalibr_ws工作区：
 ```bash
-  cd github_ws
+  mkdir kalibr_ws
+```
+  将kalibr文件夹放到kalibr_ws工作区的src文件夹内，然后进行以下操作去进行编译：
+```bash
+  cd kalibr_ws
   catkin_make
   source devel/setup.bash
 ```
   此时完成了对kalibr的编译以及编译成功后环境变量的加载。
   在编译过程中往往会出现无法编译成功kalibr工具的问题，体现为无法识别编译好的文件，对这个原因进行了分析，发现原因在于环境变量按照常规的方法添加无法被识别，找到解决方案是在无法识别时执行以下命令即可：
-```bahs
+```bash
   export PATH=$PATH:~/kalibr_ws/devel/lib/kalibr
   source devel/setup.bash
 ```
@@ -278,6 +282,6 @@ tree命令的安装指令为：
 ## 2. node_output_topic.launch
     这个launch文件可以启动相机格式标准化节点和IMU驱动节点，实现相机数据和IMU数据的标准化在线话题发布。
 ## 3. node_test_output_topic_data.launch
-    这个launch文件可以启动相机格式标准化节点和IMU驱动节点，实现相机数据和IMU数据的标准化在线话题发布以及数据及的保存。
+    这个launch文件可以启动相机格式标准化节点和IMU驱动节点，实现相机数据和IMU数据的标准化在线话题发布以及数据集的保存。
 ## 4. online_sensor_time_align.launch
     这个launch文件可以启动相机格式标准化节点、IMU驱动节点和在线时间戳粗对齐节点，实现在线时间戳粗对齐的全部流程。
