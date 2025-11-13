@@ -3,6 +3,10 @@
   <node name="fusion_node" pkg="sensor_time_align" type="fusion_node" output="screen"/>
 
   <!-- 2.发布节点：延迟1秒再启动,要不然同时启动会可能丢信息，在publish.cpp里发布逻辑和这里作双保险以保证信息传输的完整性 -->
+  <!-- 融合节点：先启动 -->
+  <node name="fusion_node" pkg="sensor_time_align" type="fusion_node" output="screen"/>
+
+  <!-- 发布节点：延迟1秒再启动,要不然同时启动会可能丢信息，在publish.cpp里发布逻辑和这里作双保险以保证信息传输的完整性 -->
   <node name="pub_node" pkg="sensor_time_align" type="pub_node" output="screen"
         launch-prefix="bash -c 'sleep 1; $0 $@' ">
     <param name="cam_csv" value="/home/cat/20251029_test/cam0_aligned.csv"/>

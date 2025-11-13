@@ -284,4 +284,4 @@ tree命令的安装指令为：
 ## 3. node_test_output_topic_data.launch
     这个launch文件可以启动相机格式标准化节点和IMU驱动节点，实现相机数据和IMU数据的标准化在线话题发布以及数据集的保存。
 ## 4. online_sensor_time_align.launch
-    这个launch文件可以启动相机格式标准化节点、IMU驱动节点和在线时间戳粗对齐节点，实现在线时间戳粗对齐的全部流程。
+    这个launch文件可以启动相机格式标准化节点、IMU驱动节点和在线时间戳粗对齐节点，实现在线时间戳粗对齐的全部功能和流程。
