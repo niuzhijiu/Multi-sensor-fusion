@@ -15,15 +15,16 @@
 sensor_time_align
 ├── CMakeLists.txt
 ├── include
-│   └── sensor_time_align
 ├── launch
 │   ├── launch_cpp.launch
 │   ├── node_output_topic.launch
 │   ├── node_test_output_topic_data.launch
-│   └── online_sensor_time_align.launch
+│   ├── online_sensor_time_align_norm.launch
+│   └── online_sensor_time_align_portion.launch
 ├── msg
 │   └── FusedState.msg
 ├── package.xml
+├── README.md
 ├── scripts
 └── src
     ├── cam_w_norm_calculate.cpp
@@ -35,11 +36,17 @@ sensor_time_align
     ├── imu_w_norm_calculate.cpp
     ├── publish.cpp
     ├── split.cpp
+    ├── time_offset_calculate_norm.cpp
     ├── time_offset_calculate_portion.cpp
     ├── timestamp_correct.cpp
-    └── timestamp_correct_node.cpp
+    ├── timestamp_correct_node_norm.cpp
+    └── timestamp_correct_node_portion.cpp
 
-此目录结构是通过tree -L 2命令去生成的，可以查看2级目录结构，能看到包内的launch、src等文件夹。
+此目录结构是通过tree命令去生成的，指令如下：
+```bash
+  tree -L 2
+```
+可以查看2级目录结构，能看到包内的launch、src等文件夹。
 tree命令的安装指令为：
 ```bash
   sudo apt update && sudo apt install -y tree
@@ -69,7 +76,7 @@ tree命令的安装指令为：
   
 ## step2:创建功能包 sensor_time_align
 ```bash
-  catkin_create_pkg sensor_time_align roscpp rospy sensor_msgs geometry_msgs cv_bridge image_transport sensor_time_align std_msgs
+  catkin_create_pkg sensor_time_align roscpp rospy sensor_msgs geometry_msgs cv_bridge image_transport std_msgs
 ```
 
 ## step3:离线粗对齐系统 offline_sensor_time_align 
@@ -159,7 +166,8 @@ tree命令的安装指令为：
 ### 3.3 进行imu角速度模值的计算
   在vscode里面编译运行imu_w_norm_calculate.cpp即可完成imu角速度模值的计算。原理是这样的：1.由imu三轴角速度原始数据计算得到imu角速度模长并输出结果然后保存下来。
 ### 3.4 进行时间偏移量b的计算
-  在vscode里面编译运行time_offset_calculate_portion.cpp即可完成时间偏移量b的计算。时间偏移量b的计算有模值和三维角速度分量两种方法。此处选择依据三维角速度分量进行计算的方法，原理是这样的： 1.线性插值视觉数据到IMU数据序列；2. 设置时间偏移的搜索范围和搜索步长，对时间偏移逐个取值，分别对各轴分量进行归一化互相关的计算；3.求得各轴归一化互相关最大时的时间偏移估计值，将相关性最强的一轴数据的时间偏移估计值记为时间偏移量并输出。
+  时间偏移量b的计算有模值和三维角速度分量两种方法。此处选择依据三维角速度分量进行计算的方法，在vscode里面编译运行time_offset_calculate_portion.cpp即可完成时间偏移量b的计算。原理是这样的： 1.线性插值视觉数据到IMU数据序列；2. 设置时间偏移的搜索范围和搜索步长，对时间偏移逐个取值，分别对各轴分量进行归一化互相关的计算；3.求得各轴归一化互相关最大时的时间偏移估计值，将相关性最强的一轴数据的时间偏移估计值记为时间偏移量并输出。
+  如果选择依据角速度模值进行计算的方法，需要在vscode里面编译运行time_offset_calculate_norm.cpp即可完成时间偏移量b的计算。原理是这样的： 1.线性插值视觉数据到IMU数据序列；2. 设置时间偏移的搜索范围和搜索步长，对时间偏移逐个取值，对角速度模值进行归一化互相关的计算；3.求得归一化互相关最大时的时间偏移估计值，记为时间偏移量并输出。
 ### 3.5 进行时间戳更正
   在vscode里面编译运行timestamp_correct.cpp即可完成时间戳更正。原理是这样的： 1.由估算出的偏移量对相机时间戳进行修正，实现粗对齐。
   
@@ -197,7 +205,7 @@ tree命令的安装指令为：
 ### 4.3 IMU的驱动
   本项目使用的是型号为lubancat 4鲁班猫板卡和一个型号为MPU6050的IMU，使用I2C总线连接进行通信，本项目采用的是I2C6总线，IMU的VCC、GND、SCL、SDA引脚分别连接板卡40PIN接口的17、39、28、27号引脚。之后使用imu_raw_node.cpp文件或imu_raw_node_test.cpp文件对IMU进行驱动，imu_raw_node.cpp的功能是对imu实时采集到的数据进行话题发布，imu_raw_node_test.cpp的功能是对imu实时采集到的数据进行话题发布以及标准化格式保存下来形成数据集。经过此步骤可以稳定得到imu数据的话题imu_raw用于之后的处理。
 ### 4.4 在线时间戳粗对齐
-  本项目的在线时间戳粗对齐环节使用timestamp_correct_node.cpp文件，在timestamp_correct_node节点中对相机数据话题和IMU数据话题进行订阅、处理，实现在线时间戳粗对齐的功能。原理大概是这样的：在线时间戳粗对齐分为校准阶段和修正阶段。校准阶段节点启动后，收集前3000帧图像数据和对应时间段的IMU数据，通过相邻图像帧的特征匹配与运动估计计算视觉角速度，之后将其与对应时间段缓存下来的IMU角速度进行运算，搜索得到最优时间偏移量bias；修正阶段以校准阶段得出的bias作为基准对在线收到的图像数据进行时间戳修正处理，并以一个新的话题进行发布，可用于kalibr标定以及后续的其它处理环节。
+  本项目的在线时间戳粗对齐环节可以使用timestamp_correct_node_portion.cpp文件或是timestamp_correct_node_norm.cpp文件，两个文件均可实现在线时间戳粗对齐的功能，区别在于计算时间偏移时timestamp_correct_node_portion.cpp文件使用三轴角速度而timestamp_correct_node_norm.cpp文件使用角速度模值。在timestamp_correct_node_portion或timestamp_correct_node_norm节点中对相机数据话题和IMU数据话题进行订阅、处理，实现在线时间戳粗对齐的功能。原理大概是这样的：在线时间戳粗对齐分为校准阶段和修正阶段。校准阶段节点启动后，收集前3000帧图像数据和对应时间段的IMU数据，通过相邻图像帧的特征匹配与运动估计计算视觉角速度，之后将其与对应时间段缓存下来的IMU角速度进行运算，搜索得到最优时间偏移量bias；修正阶段以校准阶段得出的bias作为基准对在线收到的图像数据进行时间戳修正处理，并以一个新的话题进行发布，可用于kalibr标定以及后续的其它处理环节。
     
 ## step5:ROS单目相机内参张正友标定
   本步骤是所用相机内参未知，想要标定获得相机内参时的独立步骤。标定相机内参的方法有很多，例如kalibr也可以标定，但在ROS里面用张正友标定法去标定相机内参速度是很快的，很适合对未知内参的相机进行标定。
@@ -283,5 +291,7 @@ tree命令的安装指令为：
     这个launch文件可以启动相机格式标准化节点和IMU驱动节点，实现相机数据和IMU数据的标准化在线话题发布。
 ## 3. node_test_output_topic_data.launch
     这个launch文件可以启动相机格式标准化节点和IMU驱动节点，实现相机数据和IMU数据的标准化在线话题发布以及数据集的保存。
-## 4. online_sensor_time_align.launch
-    这个launch文件可以启动相机格式标准化节点、IMU驱动节点和在线时间戳粗对齐节点，实现在线时间戳粗对齐的全部功能和流程。
+## 4. online_sensor_time_align_portion.launch
+    这个launch文件可以启动相机格式标准化节点、IMU驱动节点和在线时间戳粗对齐节点，实现在线时间戳粗对齐的全部功能和流程，使用三轴角速度去计算时间偏移。
+## 5. online_sensor_time_align_norm.launch
+    这个launch文件可以启动相机格式标准化节点、IMU驱动节点和在线时间戳粗对齐节点，实现在线时间戳粗对齐的全部功能和流程，使用角速度模值去计算时间偏移。

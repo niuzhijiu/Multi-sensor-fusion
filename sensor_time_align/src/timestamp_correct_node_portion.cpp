@@ -404,7 +404,7 @@ void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
 //主函数
 int main(int argc, char** argv) {
     //初始化ROS节点
-    ros::init(argc, argv, "timestamp_correct_node");
+    ros::init(argc, argv, "timestamp_correct_node_portion");
     //创建节点句柄
     ros::NodeHandle nh;
     //订阅
@@ -412,7 +412,7 @@ int main(int argc, char** argv) {
     ros::Subscriber sub_img = nh.subscribe("/image_timestamp_raw", 2000, imageCallback);
     //发布
     pub_correct = nh.advertise<sensor_msgs::Image>("/image_correct_raw", 2000);
-    ROS_INFO("timestamp_correct_node started. Waiting for images and imu...");
+    ROS_INFO("timestamp_correct_node_portion started. Waiting for images and imu...");
     ros::spin();
     return 0;
 }
