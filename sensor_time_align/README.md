@@ -18,7 +18,7 @@ sensor_time_align
 ├── launch
 │   ├── launch_cpp.launch
 │   ├── node_output_topic.launch
-│   ├── node_test_output_topic_data.launch
+│   ├── node_output_topic_data.launch
 │   ├── online_sensor_time_align_norm.launch
 │   └── online_sensor_time_align_portion.launch
 ├── msg
@@ -289,7 +289,7 @@ tree命令的安装指令为：
     这个launch文件可以启动离线时间戳粗对齐的发布节点和融合节点，实现IMU原始数据和修正后相机数据的发布以及消息的融合还有融合后新消息话题的发布，即实现离线时间戳粗对齐ROS部分的全部流程。
 ## 2. node_output_topic.launch
     这个launch文件可以启动相机格式标准化节点和IMU驱动节点，实现相机数据和IMU数据的标准化在线话题发布。
-## 3. node_test_output_topic_data.launch
+## 3. node_output_topic_data.launch
     这个launch文件可以启动相机格式标准化节点和IMU驱动节点，实现相机数据和IMU数据的标准化在线话题发布以及数据集的保存。
 ## 4. online_sensor_time_align_portion.launch
     这个launch文件可以启动相机格式标准化节点、IMU驱动节点和在线时间戳粗对齐节点，实现在线时间戳粗对齐的全部功能和流程，使用三轴角速度去计算时间偏移。
