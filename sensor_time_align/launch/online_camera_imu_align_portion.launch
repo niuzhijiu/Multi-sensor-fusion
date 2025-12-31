@@ -1,0 +1,13 @@
+<launch>
+  <!-- 1.启动图像转化节点 -->
+  <node name="image_raw_node" pkg="sensor_time_align" type="image_raw_node" output="screen"/>
+
+  <!-- 2.启动 IMU 驱动节点 -->
+  <node name="imu_raw_node" pkg="sensor_time_align" type="imu_raw_node" output="screen" args="/dev/i2c-6"/>
+    <!-- args 指定 I2C 设备路径，此处可以根据实际硬件情况修改 -->
+
+  <!-- 3.启动视觉惯性时间融合节点，延迟2秒启动，确保前两个节点就绪 -->
+  <node name="camera_imu_portion_node" pkg="sensor_time_align" type="camera_imu_portion" output="screen"
+        launch-prefix="bash -c 'sleep 2; $0 $@' "/>
+
+</launch>

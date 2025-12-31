@@ -1,9 +1,9 @@
+// 声明头文件和依赖
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/Image.h>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
-
 #include <vector>
 #include <mutex>
 #include <thread>
@@ -12,11 +12,11 @@
 #include <iomanip>
 #include <algorithm>
 
-//定义数据结构
+// 定义数据结构
 struct ImuSample {
     double t;
     double gx, gy, gz;
-    double g_norm;  //角速度模值
+    double g_norm;  // IMU角速度模值
 };
 
 struct ImageSample {
@@ -27,10 +27,10 @@ struct ImageSample {
 struct VisSample {
     double t;
     double wx, wy, wz;
-    double w_norm;  //角速度模值
+    double w_norm;  // 视觉角速度模值
 };
 
-//全局变量
+// 定义全局变量
 std::vector<ImuSample> imu_buffer;
 std::vector<ImageSample> image_buffer;
 std::mutex buf_mutex;
@@ -50,11 +50,12 @@ static inline std::string to_s(double v) {
     return oss.str();
 }
 
-//计算视觉角速度以及模值
+// 计算视觉角速度以及模值
 std::vector<VisSample> computeVisualAngularVelocity(const std::vector<ImageSample>& imgs) {
     std::vector<VisSample> vis;
     if (imgs.size() < 2) return vis;
 
+    // 相机内参，需要根据实际使用的相机硬件参数来设置
     cv::Mat K = (cv::Mat_<double>(3,3) <<
         685.0, 0.0, 320.0,
         0.0, 685.0, 240.0,
@@ -107,7 +108,7 @@ std::vector<VisSample> computeVisualAngularVelocity(const std::vector<ImageSampl
         v.wx = omega[0];
         v.wy = omega[1];
         v.wz = omega[2];
-        //计算视觉角速度模值
+        // 计算视觉角速度模值
         v.w_norm = std::sqrt(v.wx*v.wx + v.wy*v.wy + v.wz*v.wz);
         vis.push_back(v);
     }
@@ -124,7 +125,7 @@ std::vector<ImuSample> filterImuInRange(const std::vector<ImuSample>& imu_all, d
     return out;
 }
 
-//插值视觉模值到IMU时间序列
+// 插值视觉模值到IMU时间序列
 std::vector<double> interpolateVisNormToImu(const std::vector<VisSample>& vis,
                                           const std::vector<double>& imu_t,
                                           double bias) {
@@ -154,7 +155,7 @@ std::vector<double> interpolateVisNormToImu(const std::vector<VisSample>& vis,
     return vis_interp;
 }
 
-//计算模值序列的互相关系数
+// 计算模值序列的互相关系数
 double computeNormCorrelation(const std::vector<double>& imu_norm, const std::vector<double>& vis_norm) {
     if (imu_norm.size() != vis_norm.size() || imu_norm.empty()) return 0.0;
 
@@ -179,11 +180,11 @@ double computeNormCorrelation(const std::vector<double>& imu_norm, const std::ve
     return num / std::sqrt(denom1 * denom2);
 }
 
-//基于模值估计时间偏移
+// 基于模值估计时间偏移
 double estimateBiasFromSegment(const std::vector<ImuSample>& imu_seg, const std::vector<VisSample>& vis) {
     if (imu_seg.empty() || vis.empty()) return 0.0;
 
-    //提取IMU时间戳和模值序列
+    // 提取IMU时间戳和模值序列
     std::vector<double> imu_t, imu_norm;
     imu_t.reserve(imu_seg.size());
     imu_norm.reserve(imu_seg.size());
@@ -192,18 +193,18 @@ double estimateBiasFromSegment(const std::vector<ImuSample>& imu_seg, const std:
         imu_norm.push_back(s.g_norm);
     }
 
-    //初始化最佳偏移和相关系数
+    // 初始化最佳偏移和相关系数
     double best_bias = 0.0;
     double best_rho = -1.0;
 
-    //搜索最佳偏移
-    for (double bias = -0.025; bias <= 0.025 + 1e-12; bias += 0.001) {
-        //插值视觉模值到IMU时间序列
+    // 搜索最佳偏移
+    for (double bias = -0.025; bias <= 0.025 + 1e-12; bias += 0.0005) {
+        // 插值视觉模值到IMU时间序列
         auto vis_interp = interpolateVisNormToImu(vis, imu_t, bias);
-        //计算模值序列的互相关系数
+        // 计算模值序列的互相关系数
         double rho = computeNormCorrelation(imu_norm, vis_interp);
         
-        //更新最佳结果
+        // 更新最佳结果
         if (rho > best_rho) {
             best_rho = rho;
             best_bias = bias;
@@ -214,34 +215,45 @@ double estimateBiasFromSegment(const std::vector<ImuSample>& imu_seg, const std:
     return best_bias;
 }
 
-//IMU回调
+// IMU回调函数
 void imuCallback(const sensor_msgs::Imu::ConstPtr& msg) {
     ImuSample s;
     s.t = msg->header.stamp.toSec();
     s.gx = msg->angular_velocity.x;
     s.gy = msg->angular_velocity.y;
     s.gz = msg->angular_velocity.z;
-    //计算IMU角速度模值
+    // 计算IMU角速度模值
     s.g_norm = std::sqrt(s.gx*s.gx + s.gy*s.gy + s.gz*s.gz);
     
     std::lock_guard<std::mutex> lock(buf_mutex);
     imu_buffer.push_back(s);
 }
 
-//图像回调
+// 图像回调函数
 void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
     double t = msg->header.stamp.toSec();
 
+    // 将ROS图像消息sensor_msgs/Image转为OpenCV的cv::Mat格式
     cv::Mat img;
     try {
-        cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvShare(msg, "bgr8");
-        img = cv_ptr->image.clone();
+        // 先判断原始编码是否为rgb8格式
+        if (msg->encoding == "rgb8") {
+            // 若是rgb8格式，将rgb8格式转为bgr8格式，bgr8格式是OpenCV原生格式
+            cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvShare(msg, "rgb8");
+            cv::cvtColor(cv_ptr->image, img, cv::COLOR_RGB2BGR);
+        } else {
+            // 若不是rgb8格式，优先尝试去读取转化bgr8格式
+            cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvShare(msg, "bgr8");
+            img = cv_ptr->image.clone();
+        }
     } catch (cv_bridge::Exception& e) {
         try {
+            // 不是bgr8格式的话尝试mono8格式
             cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvShare(msg, "mono8");
             cv::cvtColor(cv_ptr->image, img, cv::COLOR_GRAY2BGR);
         } catch (...) {
-            ROS_WARN("imageCallback: unsupported image encoding, skipping this image");
+            // 所有编码都失败则跳过
+            ROS_WARN("imageCallback: unsupported image encoding (%s), skipping this image", msg->encoding.c_str());
             return;
         }
     }
@@ -325,6 +337,7 @@ void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
     {
         std_msgs::Header hdr;
         hdr.stamp = ros::Time(t + estimated_bias);
+        // 将OpenCV图像转为ROS消息，编码为bgr8
         cv_bridge::CvImage cv_out(hdr, "bgr8", img);
         out_msg = cv_out.toImageMsg();
     }
@@ -332,7 +345,7 @@ void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
 }
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "timestamp_correct_node_norm");
+    ros::init(argc, argv, "camera_imu_norm_node");
     ros::NodeHandle nh;
     ros::Subscriber sub_imu = nh.subscribe("/imu_raw", 20000, imuCallback);
     ros::Subscriber sub_img = nh.subscribe("/image_timestamp_raw", 2000, imageCallback);

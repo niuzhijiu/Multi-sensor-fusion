@@ -1,0 +1,9 @@
+<launch>
+  <!-- 1.启动图像转化节点 -->
+  <node name="image_raw_node" pkg="sensor_time_align" type="image_raw_node" output="screen"/>
+
+  <!-- 2.启动 IMU 驱动节点 -->
+  <node name="imu_raw_node" pkg="sensor_time_align" type="imu_raw_node" output="screen" args="/dev/i2c-6"/>
+    <!-- args 指定 I2C 设备路径，根据实际硬件修改（如 /dev/i2c-6）注意鲁班猫四代开发板卡只有 /dev/i2c-6和 /dev/i2c-5两种 I2C 设备路径 -->
+
+</launch>

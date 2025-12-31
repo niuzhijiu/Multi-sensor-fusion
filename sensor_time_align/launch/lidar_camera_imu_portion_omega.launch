@@ -1,0 +1,22 @@
+<launch>
+  <!-- 启动时间戳校正节点 -->
+  <!-- 1.启动图像与IMU时间戳校正节点 -->
+  <node name="camera_imu_portion_node" pkg="sensor_time_align" type="camera_imu_portion" output="screen">
+    <!-- 可调整的参数 -->
+    <!-- <param name="target_images" value="3000" /> -->
+  </node>
+
+  <!-- 2.启动雷达与IMU时间戳校正节点 -->
+  <node name="lidar_imu_omega_node" pkg="sensor_time_align" type="lidar_imu_omega" output="screen">
+    <!-- 可调整的参数 -->
+    <param name="target_lidar_frames" value="600" />
+    <param name="lidar_min_range" value="0.15" />
+    <param name="lidar_max_range" value="16.0" />
+    <param name="search_min_bias" value="-0.025" />
+    <param name="search_max_bias" value="0.025" />
+    <param name="search_step" value="0.0005" />
+    <param name="imu_topic" value="/imu_raw" />
+    <param name="lidar_topic" value="/scan" />
+    <param name="output_topic" value="/scan_correct" />
+  </node>
+</launch>

@@ -4,7 +4,7 @@
   <version>0.0.0</version>
   <description>The sensor_time_align package</description>
 
-  <maintainer email="slam@todo.todo">slam</maintainer>
+  <maintainer email="283275126@qq.com">niuzhijiu</maintainer>
   <license>TODO</license>
 
   <buildtool_depend>catkin</buildtool_depend>
