@@ -189,8 +189,8 @@ install(TARGETS
   imu_raw_node_save
   camera_imu_portion
   camera_imu_norm
-  lidar_imu_omega
   lidar_imu_distance
+  lidar_imu_omega
   lidar_camera_imu
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
