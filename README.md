@@ -16,7 +16,6 @@
 ```
 sensor_time_align
     ├── CMakeLists.txt
-    ├── include
     ├── launch
     │   ├── camera_imu_data.launch
     │   ├── camera_imu_data_save.launch
@@ -27,8 +26,6 @@ sensor_time_align
     ├── msg
     │   └── FusedState.msg
     ├── package.xml
-    ├── README.md
-    ├── scripts
     └── src
         ├── camera_imu_norm.cpp
         ├── camera_imu_portion.cpp
