@@ -1,0 +1,11 @@
+port: "/dev/ttyACM0"
+baud: 460800
+frame_id: "imu_link"
+imu_topic: "/imu/data"
+mag_topic: "/imu/mag"
+mag_unit: "gauss"
+publish_rate: 200
+debug: true
+cov_orientation: -1
+cov_angular_velocity: -1
+cov_linear_acceleration: -1

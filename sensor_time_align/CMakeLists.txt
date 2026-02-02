@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   rosbag
+  livox_ros_driver2
 )
 
 ## 查找系统依赖
@@ -46,6 +47,7 @@ catkin_package(
     sensor_msgs 
     std_msgs 
     image_transport
+    livox_ros_driver2
   DEPENDS 
     OpenCV 
     Boost
@@ -79,6 +81,11 @@ add_executable(camera_imu_norm src/camera_imu_norm.cpp)
 add_executable(lidar_imu_distance src/lidar_imu_distance.cpp)
 add_executable(lidar_imu_omega src/lidar_imu_omega.cpp)
 add_executable(lidar_camera_imu src/lidar_camera_imu.cpp)
+add_executable(imu_topic_convert src/imu_topic_convert.cpp)
+add_executable(image_topic_convert src/image_topic_convert.cpp)
+add_executable(mid_lidar_imu_distance src/mid_lidar_imu_distance.cpp)
+add_executable(mid_lidar_imu_omega src/mid_lidar_imu_omega.cpp)
+add_executable(mid_lidar_camera_imu src/mid_lidar_camera_imu.cpp)
 
 ## 保证消息生成在编译前完成
 add_dependencies(split ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -98,6 +105,11 @@ add_dependencies(camera_imu_norm ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 add_dependencies(lidar_imu_distance ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(lidar_imu_omega ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(lidar_camera_imu ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(imu_topic_convert ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(image_topic_convert ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(mid_lidar_imu_distance ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(mid_lidar_imu_omega ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(mid_lidar_camera_imu ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## 链接库
 target_link_libraries(split
@@ -168,6 +180,29 @@ target_link_libraries(lidar_camera_imu
   ${OpenCV_LIBRARIES}
   ${Boost_LIBRARIES}
 )
+target_link_libraries(imu_topic_convert
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(image_topic_convert
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
+target_link_libraries(mid_lidar_imu_distance
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
+target_link_libraries(mid_lidar_imu_omega
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
+target_link_libraries(mid_lidar_camera_imu
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
 
 #############
 ## Install ##
@@ -189,8 +224,13 @@ install(TARGETS
   imu_raw_node_save
   camera_imu_portion
   camera_imu_norm
-  lidar_imu_distance
   lidar_imu_omega
+  lidar_imu_distance
   lidar_camera_imu
+  imu_topic_convert
+  image_topic_convert
+  mid_lidar_imu_distance
+  mid_lidar_imu_omega
+  mid_lidar_camera_imu
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

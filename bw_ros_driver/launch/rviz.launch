@@ -1,0 +1,6 @@
+<launch>
+  <arg name="rviz_config" default="$(find bw_ros_driver)/config/rviz_config.rviz" />
+
+  <node
+    pkg="rviz" type="rviz" name="rviz" args="-d $(arg rviz_config)" output="screen" />
+</launch>

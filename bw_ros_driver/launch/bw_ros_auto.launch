@@ -1,0 +1,14 @@
+<launch>
+  <!-- Node for Standard Protocol（77 XX XX XX ..）-->
+  <node pkg="bw_ros_driver" type="bw_node_standard" name="bw_node_standard" output="screen">
+    <rosparam command="load" file="$(find bw_ros_driver)/config/common_params.yaml"/>
+  </node>
+  <!-- Node for Nova Protocol（F3 XX XX XX ..）-->
+  <!-- <node pkg="bw_ros_driver" type="bw_node_nova" name="bw_node_nova" output="screen">
+    <rosparam command="load" file="$(find bw_ros_driver)/config/common_params.yaml"/> -->
+  <!-- </node> -->
+
+  <!-- rviz -->
+  <arg name="rviz_config" default="$(find bw_ros_driver)/config/rviz_config.rviz" />
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg rviz_config)" output="screen" />
+</launch>

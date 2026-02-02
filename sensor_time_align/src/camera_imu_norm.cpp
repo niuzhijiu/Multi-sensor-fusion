@@ -16,7 +16,7 @@
 struct ImuSample {
     double t;
     double gx, gy, gz;
-    double g_norm;  // IMU角速度模值
+    double g_norm;     // IMU角速度模值
 };
 
 struct ImageSample {
@@ -27,7 +27,7 @@ struct ImageSample {
 struct VisSample {
     double t;
     double wx, wy, wz;
-    double w_norm;  // 视觉角速度模值
+    double w_norm;     // 视觉角速度模值
 };
 
 // 定义全局变量
@@ -42,7 +42,7 @@ double estimated_bias = 0.0;
 
 ros::Publisher pub_correct;
 
-const int TARGET_IMAGES = 3000;
+const int TARGET_IMAGES = 2000;           // 校准阶段帧数，可根据实际需求修改
 
 static inline std::string to_s(double v) {
     std::ostringstream oss;
@@ -234,7 +234,7 @@ void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
     double t = msg->header.stamp.toSec();
 
     // 将ROS图像消息sensor_msgs/Image转为OpenCV的cv::Mat格式
-    cv::Mat img;
+    cv::Mat img;  // 保存原始彩色图，用于最终发布
     try {
         // 先判断原始编码是否为rgb8格式
         if (msg->encoding == "rgb8") {
@@ -266,7 +266,18 @@ void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
     }
 
     if (!ready_to_publish) {
-        ImageSample s; s.t = t; s.img = img;
+        // 校准阶段将彩色图转为灰度图，仅用灰度图参与计算
+        cv::Mat gray_img;  // 灰度图，仅用于校准计算
+        if (img.channels() == 3) {  
+            // 若是彩色图则转灰度图
+            cv::cvtColor(img, gray_img, cv::COLOR_BGR2GRAY);
+        } else {  
+            // 已是灰度图则直接复用
+            gray_img = img.clone();
+        }
+
+        // 缓存灰度图用于校准计算
+        ImageSample s; s.t = t; s.img = gray_img;
         image_buffer.push_back(s);
 
         if ((int)image_buffer.size() == TARGET_IMAGES && !computing) {
@@ -333,11 +344,12 @@ void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
         return;
     }
 
+    // 修正阶段：使用原始彩色图发布，无灰度处理
     sensor_msgs::ImagePtr out_msg;
     {
         std_msgs::Header hdr;
         hdr.stamp = ros::Time(t + estimated_bias);
-        // 将OpenCV图像转为ROS消息，编码为bgr8
+        // 将OpenCV彩色图像转为ROS消息，编码为bgr8
         cv_bridge::CvImage cv_out(hdr, "bgr8", img);
         out_msg = cv_out.toImageMsg();
     }

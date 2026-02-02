@@ -49,7 +49,7 @@ namespace ImageCalib {
     bool ready_to_publish = false;             // 完成偏移计算状态标记，偏移计算完成后置true
     double estimated_bias = 0.0;               // 估计出的偏移
     ros::Publisher pub_correct;                // 发布修正后图像的发布者
-    const int TARGET_IMAGES = 3000;            // 校准阶段需要用于估计的图像帧数，此处设置为3000，也可以进行设置成其它数值
+    const int TARGET_IMAGES = 2000;            // 校准阶段需要用于估计的图像帧数，可以设置成其它数值
 }
 
 // 命名空间隔离：雷达校准相关变量
@@ -88,13 +88,13 @@ std::vector<VisSample> computeVisualAngularVelocity(const std::vector<ImageSampl
     std::vector<VisSample> vis;
     if (imgs.size() < 2) return vis;
 
-    // 相机内参矩阵，此参数根据相机硬件参数特性设置
+    // 相机内参矩阵，此参数根据相机硬件参数特性设置，此处为d435的内参
     cv::Mat K = (cv::Mat_<double>(3,3) <<
-        685.0, 0.0, 320.0,
-        0.0, 685.0, 240.0,
+        384.0, 0.0, 320.0,
+        0.0, 384.0, 240.0,
         0.0, 0.0, 1.0);
 
-    // 创建ORB特征提取器，提取图像特征点和描述子，此处设置它最多可以提取2000个特征点,也可以改成别的数值
+    // 创建ORB特征提取器，提取图像特征点和描述子，可以改成别的数值
     cv::Ptr<cv::ORB> orb = cv::ORB::create(2000);
 
     // 遍历相邻图像帧，计算角速度
@@ -109,7 +109,7 @@ std::vector<VisSample> computeVisualAngularVelocity(const std::vector<ImageSampl
         std::vector<cv::KeyPoint> kp1, kp2;                             // 存储特征点
         cv::Mat des1, des2;                                             // 存储特征描述子
         orb->detectAndCompute(imgs[i].img, cv::Mat(), kp1, des1);       // 对前一帧进行特征提取
-        orb->detectAndCompute(imgs[i+1].img, cv::Mat(), kp2, des2);     //对后一帧进行特征提取
+        orb->detectAndCompute(imgs[i+1].img, cv::Mat(), kp2, des2);     // 对后一帧进行特征提取
         if (des1.empty() || des2.empty()) continue;
 
         // 使用bf即Brute Force Matcher暴力匹配器进行特征匹配
@@ -131,12 +131,17 @@ std::vector<VisSample> computeVisualAngularVelocity(const std::vector<ImageSampl
         cv::Mat mask;                                                                     // 掩码标记有效的内点和无效的外点
         cv::Mat E = cv::findEssentialMat(pts1, pts2, K, cv::RANSAC, 0.999, 1.0, mask);    // 估计本质矩阵E
         if (E.empty()) continue;                                                          // 跳过估计失败的情况
+        // 校验E矩阵是否为3×3方阵
+        if (E.rows != 3 || E.cols != 3) continue;                                         // 跳过非3×3的无效本质矩阵
         if (cv::countNonZero(mask) < 5) continue;                                         // 跳过匹配的有效点太少的情况
 
         // 由本质矩阵E得到旋转矩阵R
         cv::Mat R, tvec;
         cv::recoverPose(E, pts1, pts2, K, R, tvec, mask);
         
+        // 校验旋转矩阵R是否为3×3方阵
+        if (R.empty() || R.rows != 3 || R.cols != 3) continue;                            // 跳过无效的旋转矩阵
+
         // 将旋转矩阵R转为旋转向量rvec，使用Rodrigues变化
         cv::Mat rvec;
         cv::Rodrigues(R, rvec);
@@ -292,7 +297,7 @@ double estimateBiasFromSegment(const std::vector<ImuSample>& imu_seg, const std:
     return best_bias;
 }
 
-// 图像消息回调函数imageCallback：把整个在线时间戳粗对齐过程分为校准阶段和修正阶段两个阶段。校准阶段收集前3000帧用于估计,修正阶段在校准阶段估计完成后将新到来的每一帧修正并发布
+// 图像消息回调函数imageCallback：把整个在线时间戳粗对齐过程分为校准阶段和修正阶段两个阶段。校准阶段收集前2000帧用于估计,修正阶段在校准阶段估计完成后将新到来的每一帧修正并发布
 void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
     // 提取图像时间戳
     double t = msg->header.stamp.toSec();
@@ -322,6 +327,16 @@ void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
         }
     }
 
+    cv::Mat gray_img;
+    if (img.channels() == 3) {  
+        // 若为彩色图，转为单通道灰度图
+        cv::cvtColor(img, gray_img, cv::COLOR_BGR2GRAY);
+    } else {  
+        // 若已是灰度图，直接复用
+        gray_img = img.clone();
+    }
+    // 保留原始彩色img，新增灰度图副本用于缓存计算，不覆盖原始彩色img
+    cv::Mat img_for_calib = gray_img.clone();
 
     // 加互斥锁保护全局数据
     std::lock_guard<std::mutex> lock(buf_mutex);
@@ -334,7 +349,7 @@ void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
 
     // 数据收集阶段：只缓存图像不发布
     if (!ImageCalib::ready_to_publish) {
-        ImageSample s; s.t = t; s.img = img;
+        ImageSample s; s.t = t; s.img = img_for_calib;
         ImageCalib::image_buffer.push_back(s);
 
         // 检查是否达到目标帧数，当刚好等于TARGET_IMAGES所设置的目标帧数时在另一个线程中触发计算
@@ -351,7 +366,7 @@ void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
                     imu_copy = imu_buffer;  
                 }
 
-                // 安全检查确保图像数至少有TARGET_IMAGES帧，此处为3000帧
+                // 安全检查确保图像数至少有TARGET_IMAGES帧
                 if ((int)imgs_copy.size() < ImageCalib::TARGET_IMAGES) {
                     ROS_ERROR("compute thread: unexpected small image buffer");
                     ImageCalib::computing = false;
@@ -419,7 +434,7 @@ void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
         // 创建sensor_msgs::Image类型的消息并填充
         std_msgs::Header hdr;
         hdr.stamp = ros::Time(t + ImageCalib::estimated_bias);
-        // 将OpenCV图像转为ROS消息，编码为bgr8去输出修正后的图像
+        // 将OpenCV图像转为ROS消息，编码为bgr8去输出修正后的图像，使用原始彩色img
         cv_bridge::CvImage cv_out(hdr, "bgr8", img);
         out_msg = cv_out.toImageMsg();
     }
@@ -764,7 +779,8 @@ void lidarCallback(const sensor_msgs::LaserScan::ConstPtr& msg) {
     // 修正阶段：发布时间戳修正后的雷达
     sensor_msgs::LaserScanPtr out_msg = boost::make_shared<sensor_msgs::LaserScan>(*msg);
     // 雷达时间戳修正
-    out_msg->header.stamp = ros::Time(s.t + LidarCalib::estimated_bias);
+    double lidar_t = msg->header.stamp.toSec();
+    out_msg->header.stamp = ros::Time(lidar_t + LidarCalib::estimated_bias);
     // 发布修正后的雷达数据
     LidarCalib::pub_correct.publish(out_msg);
 }

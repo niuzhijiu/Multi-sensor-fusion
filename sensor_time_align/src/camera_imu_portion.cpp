@@ -32,18 +32,18 @@ struct VisSample {
 };
 
 // 定义全局变量
-std::vector<ImuSample> imu_buffer;       // 缓存收到的IMU样本，全局不断追加
-std::vector<ImageSample> image_buffer;   // 缓存收到的图像样本，用于校准阶段图像帧的收集和计算
+std::vector<ImuSample> imu_buffer;               // 缓存收到的IMU样本，全局不断追加
+std::vector<ImageSample> image_buffer;           // 缓存收到的图像样本，用于校准阶段图像帧的收集和计算
 std::mutex buf_mutex;
 
-bool collected = false;          // 是否已经开始收集状态标记，收到第一帧图像时置true
-bool computing = false;          // 是否正在计算偏移状态标记，开始计算时间偏移时置true
-bool ready_to_publish = false;   // 是否完成偏移计算状态标记，偏移计算完成后置true
-double estimated_bias = 0.0;     // 估计出的偏移
+bool collected = false;                          // 是否已经开始收集状态标记，收到第一帧图像时置true
+bool computing = false;                          // 是否正在计算偏移状态标记，开始计算时间偏移时置true
+bool ready_to_publish = false;                   // 是否完成偏移计算状态标记，偏移计算完成后置true
+double estimated_bias = 0.0;                     // 估计出的偏移
 
-ros::Publisher pub_correct;      // ROS发布者：发布修正后图像
+ros::Publisher pub_correct;                      // ROS发布者：发布修正后图像
 
-const int TARGET_IMAGES = 3000;  // 校准阶段需要用于估计的图像帧数：此处设置为3000，也可以进行更改设置成其它数值
+const int TARGET_IMAGES = 2000;                  // 校准阶段需要用于估计的图像帧数，可以设置成其它数值
 
 // to_s函数：将浮点数v转为保留6位小数的字符串
 static inline std::string to_s(double v) {
@@ -63,7 +63,7 @@ std::vector<VisSample> computeVisualAngularVelocity(const std::vector<ImageSampl
         0.0, 685.0, 240.0,
         0.0, 0.0, 1.0);
 
-    // 创建ORB特征提取器，提取图像特征点和描述子，此处设置它最多可以提取2000个特征点,也可以改成别的数值
+    // 创建ORB特征提取器，提取图像特征点和描述子，可以改成别的数值
     cv::Ptr<cv::ORB> orb = cv::ORB::create(2000);
 
     // 遍历相邻图像帧，计算角速度
@@ -75,17 +75,17 @@ std::vector<VisSample> computeVisualAngularVelocity(const std::vector<ImageSampl
         if (dt <= 0.0) continue;
 
         // 对相邻两帧图像提取ORB特征
-        std::vector<cv::KeyPoint> kp1, kp2;                         // 存储特征点
-        cv::Mat des1, des2;                                         // 存储特征描述子
-        orb->detectAndCompute(imgs[i].img, cv::Mat(), kp1, des1);   // 前一帧特征提取
-        orb->detectAndCompute(imgs[i+1].img, cv::Mat(), kp2, des2); // 后一帧特征提取
+        std::vector<cv::KeyPoint> kp1, kp2;                               // 存储特征点
+        cv::Mat des1, des2;                                               // 存储特征描述子
+        orb->detectAndCompute(imgs[i].img, cv::Mat(), kp1, des1);         // 前一帧特征提取
+        orb->detectAndCompute(imgs[i+1].img, cv::Mat(), kp2, des2);       // 后一帧特征提取
         if (des1.empty() || des2.empty()) continue;
 
         // 使用bf即Brute Force Matcher暴力匹配器进行特征匹配
-        cv::BFMatcher bf(cv::NORM_HAMMING, true);  // 基于汉明距离
+        cv::BFMatcher bf(cv::NORM_HAMMING, true);                         // 基于汉明距离
         std::vector<cv::DMatch> matches;
-        bf.match(des1, des2, matches);             // 进行匹配
-        if (matches.size() < 5) continue;          // 匹配点个数少于5的话不予匹配直接跳过
+        bf.match(des1, des2, matches);                                    // 进行匹配
+        if (matches.size() < 5) continue;                                 // 匹配点个数少于5的话不予匹配直接跳过
 
         // 提取匹配的特征点坐标
         std::vector<cv::Point2f> pts1, pts2;
@@ -97,10 +97,10 @@ std::vector<VisSample> computeVisualAngularVelocity(const std::vector<ImageSampl
         }
 
         // 估计本质矩阵E
-        cv::Mat mask;  // 掩码标记有效的内点和无效的外点
-        cv::Mat E = cv::findEssentialMat(pts1, pts2, K, cv::RANSAC, 0.999, 1.0, mask);  // 估计本质矩阵E
-        if (E.empty()) continue;  // 跳过估计失败的情况
-        if (cv::countNonZero(mask) < 5) continue;  // 跳过匹配的有效点太少的情况
+        cv::Mat mask;                                                                       // 掩码标记有效的内点和无效的外点
+        cv::Mat E = cv::findEssentialMat(pts1, pts2, K, cv::RANSAC, 0.999, 1.0, mask);      // 估计本质矩阵E
+        if (E.empty()) continue;                                                            // 跳过估计失败的情况
+        if (cv::countNonZero(mask) < 5) continue;                                           // 跳过匹配的有效点太少的情况
 
         // 由本质矩阵E得到旋转矩阵R
         cv::Mat R, tvec;
@@ -188,9 +188,9 @@ double computeCorrelation(const std::vector<double>& imu_s, const std::vector<do
     // 计算互相关公式的分子和分母
     double num = 0.0, denom1 = 0.0, denom2 = 0.0;
     for (size_t i = 0; i < imu_s.size(); ++i) {
-        double a = imu_s[i] - mean_imu;  // IMU信号去均值
-        double b = vis_s[i] - mean_vis;  // 视觉信号去均值
-        num += a*b; denom1 += a*a; denom2 += b*b;  // 计算互相关公式的分子和分母
+        double a = imu_s[i] - mean_imu;                   // IMU信号去均值
+        double b = vis_s[i] - mean_vis;                   // 视觉信号去均值
+        num += a*b; denom1 += a*a; denom2 += b*b;         // 计算互相关公式的分子和分母
     }
     // 避免信号无波动时分母为0，返回0表示无相关
     if (denom1 <= 0.0 || denom2 <= 0.0) return 0.0;
@@ -274,13 +274,13 @@ void imuCallback(const sensor_msgs::Imu::ConstPtr& msg) {
     imu_buffer.push_back(s);
 }
 
-// 图像消息回调函数imageCallback：把整个在线时间戳粗对齐过程分为校准阶段和修正阶段两个阶段。校准阶段收集前3000帧用于估计,修正阶段在校准阶段估计完成后将新到来的每一帧修正并发布
+// 图像消息回调函数imageCallback：把整个在线时间戳粗对齐过程分为校准阶段和修正阶段两个阶段。校准阶段收集前2000帧用于估计,修正阶段在校准阶段估计完成后将新到来的每一帧修正并发布
 void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
     // 提取图像时间戳
     double t = msg->header.stamp.toSec();
 
     // 将ROS图像消息sensor_msgs/Image转为OpenCV的cv::Mat格式
-    cv::Mat img;
+    cv::Mat img;           // 保存原始彩色图，用于最终发布
     try {
         // 先判断原始编码是否为rgb8格式
         if (msg->encoding == "rgb8") {
@@ -315,7 +315,18 @@ void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
 
     // 校准阶段：只缓存图像，不发布图像，计算最佳时间偏移
     if (!ready_to_publish) {
-        ImageSample s; s.t = t; s.img = img;
+        // 校准阶段将彩色图转为灰度图，仅用灰度图参与视觉角速度计算
+        cv::Mat gray_img;
+        if (img.channels() == 3) {
+            // 若是彩色图则转灰度图
+            cv::cvtColor(img, gray_img, cv::COLOR_BGR2GRAY);
+        } else {
+            // 已是灰度图则直接复用
+            gray_img = img.clone();
+        }
+
+        // 缓存灰度图用于校准计算
+        ImageSample s; s.t = t; s.img = gray_img;
         image_buffer.push_back(s);
 
         // 检查是否达到目标帧数，当刚好等于TARGET_IMAGES所设置的目标帧数时在另一个线程中触发计算
@@ -332,7 +343,7 @@ void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
                     imu_copy = imu_buffer;  
                 }
 
-                // 安全检查确保图像数至少有TARGET_IMAGES帧，此处为3000帧
+                // 安全检查确保图像数至少有TARGET_IMAGES帧，此处为2000帧
                 if ((int)imgs_copy.size() < TARGET_IMAGES) {
                     ROS_ERROR("compute thread: unexpected small image buffer");
                     computing = false;
@@ -357,7 +368,7 @@ void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
                     return;
                 }
 
-                // 计算视觉角速度，仅使用前TARGET_IMAGES帧
+                // 计算视觉角速度，仅使用前TARGET_IMAGES帧（传入的是灰度图）
                 std::vector<ImageSample> imgs_for_vis(imgs_copy.begin(), imgs_copy.begin() + TARGET_IMAGES);
                 auto vis = computeVisualAngularVelocity(imgs_for_vis);
                 
@@ -373,11 +384,11 @@ void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
 
                 // 更新全局状态
                 {
-                    std::lock_guard<std::mutex> lock(buf_mutex);  // 保存最优偏移
-                    estimated_bias = bias;  // 设置修正阶段的时间偏移
-                    ready_to_publish = true;  // 标记可以开始发布了
-                    computing = false;  // 标记校准阶段的计算结束
-                    image_buffer.clear();  // 清空image_buffer，因为此处的逻辑是前TARGET_IMAGES帧是只参与计算的，所以发布阶段要把它们清除
+                    std::lock_guard<std::mutex> lock(buf_mutex);     // 保存最优偏移
+                    estimated_bias = bias;                           // 设置修正阶段的时间偏移
+                    ready_to_publish = true;                         // 标记可以开始发布了
+                    computing = false;                               // 标记校准阶段的计算结束
+                    image_buffer.clear();                            // 清空image_buffer，因为此处的逻辑是前TARGET_IMAGES帧是只参与计算的，所以发布阶段要把它们清除
                     
                     // 打印最终时间偏移量b
                     ROS_INFO("\n==================================================");
@@ -400,11 +411,11 @@ void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
         // 创建sensor_msgs::Image类型的消息并填充
         std_msgs::Header hdr;
         hdr.stamp = ros::Time(t + estimated_bias);
-        // 将OpenCV图像转为ROS消息，编码为bgr8
+        // 将OpenCV彩色图像转为ROS消息，编码为bgr8
         cv_bridge::CvImage cv_out(hdr, "bgr8", img);
         out_msg = cv_out.toImageMsg();
     }
-    // 发布修正后的图像
+    // 发布修正后的彩色图像
     pub_correct.publish(out_msg);
 }
 
