@@ -395,12 +395,12 @@ IMU残差(gyro/accel residual)是否趋于稳定；
 3. 双目深度相机D435i  频率：30HZ  分辨率：1280*720
 
 ### IMU
-1. MPU6050  频率：125HZ  六轴
-2. DMC620  频率：100HZ  九轴
+1. 六轴MPU6050  频率：125HZ
+2. 九轴DMC620  频率：100HZ
 
 ### 雷达
-1. rplidar  频率：10HZ  2D
-2. mid360  频率：10HZ  3D
+1. 2D激光雷达rplidar  频率：10HZ
+2. 3D激光雷达mid360  频率：10HZ
 
 ## 视觉惯性离线时间戳对齐文件依赖关系示意图
 ![file dependency](offline_file_dependency.png)
