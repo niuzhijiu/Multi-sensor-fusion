@@ -79,7 +79,7 @@ add_executable(imu_raw_node_save src/imu_raw_node_save.cpp)
 add_executable(camera_imu_portion src/camera_imu_portion.cpp)
 add_executable(camera_imu_norm src/camera_imu_norm.cpp)
 add_executable(lidar_imu_distance src/lidar_imu_distance.cpp)
-add_executable(lidar_imu_omega src/lidar_imu_omega.cpp)
+add_executable(lidar_imu_omega src/lidar_imu_omega.cpp) 
 add_executable(lidar_camera_imu src/lidar_camera_imu.cpp)
 add_executable(imu_topic_convert src/imu_topic_convert.cpp)
 add_executable(image_topic_convert src/image_topic_convert.cpp)
@@ -224,8 +224,8 @@ install(TARGETS
   imu_raw_node_save
   camera_imu_portion
   camera_imu_norm
-  lidar_imu_omega
   lidar_imu_distance
+  lidar_imu_omega
   lidar_camera_imu
   imu_topic_convert
   image_topic_convert

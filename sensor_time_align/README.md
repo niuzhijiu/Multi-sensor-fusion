@@ -387,6 +387,21 @@ IMU残差(gyro/accel residual)是否趋于稳定；
 ### 6.lidar_camera_imu_portion_omega.launch
 这个launch文件可以启动雷达视觉惯性在线时间戳对齐节点，实现雷达视觉惯性在线时间戳对齐的全部功能和流程，使用角速度去计算时间偏移。
 
+## 项目所用传感器型号
+
+### 相机
+普通单目相机  频率：25HZ  分辨率：640*480  
+双目深度相机D435  频率：30HZ  分辨率：640*480  
+双目深度相机D435i  频率：30HZ  分辨率：1280*720
+
+### IMU
+MPU6050  频率：125HZ  六轴  
+DMC620  频率：100HZ  九轴
+
+### 雷达
+rplidar  频率：10HZ  2D  
+mid360  频率：10HZ  3D
+
 ## 视觉惯性离线时间戳对齐文件依赖关系示意图
 ![file dependency](offline_file_dependency.png)
 
