@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<package format="2">
+  <!-- 基础信息 -->
+  <name>mid_lidar_imu_calib</name>
+  <version>1.0.0</version>
+  <description>The mid_lidar_imu_calib package</description>
+  <maintainer email="283275126@qq.com">niuzhijiu</maintainer>
+  <license>MIT</license>
+
+  <!-- ROS版本依赖 -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- 编译依赖 -->
+  <build_depend>roscpp</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>livox_ros_driver2</build_depend>
+  <build_depend>eigen_conversions</build_depend>
+  <build_depend>eigen3</build_depend>
+  <build_depend>yaml-cpp</build_depend>
+   <build_depend>message_generation</build_depend>
+
+  <!-- 运行依赖 -->
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>livox_ros_driver2</exec_depend>
+  <exec_depend>eigen_conversions</exec_depend>
+  <exec_depend>yaml-cpp</exec_depend>
+  <exec_depend>message_runtime</exec_depend>
+
+  <!-- 导出配置 -->
+  <export>
+    <build_type>catkin</build_type>
+  </export>
+</package>
